@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from 'axios';
 
 const dummyTransactions = [
   {
@@ -23,11 +24,39 @@ const dummyTransactions = [
 
 const TrackPayment = () => {
   const [search, setSearch] = useState("");
+  const [transactions, setTransactions] = useState(dummyTransactions);
+
+  useEffect(() => {
+    const fetchDonations = async () => {
+      try {
+        const token = JSON.parse(localStorage.getItem('userInfo'))?.token;
+        const res = await axios.get('http://localhost:8000/api/donations', { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+        // Map backend donations to table-friendly format
+        const mapped = res.data.map(d => ({
+          id: d.transactionId,
+          donor: d.donorName || 'Anonymous',
+          amount: `${d.currency} ${d.amount}`,
+          campaign: d.campaignId, // you may fetch campaign title separately if needed
+          date: new Date(d.date).toISOString().split('T')[0],
+          status: 'Confirmed',
+          method: d.method,
+        }));
+        setTransactions(mapped);
+      } catch (err) {
+        console.error('Failed to fetch donations, using fallback:', err);
+        setTransactions(dummyTransactions);
+      }
+    };
+    fetchDonations();
+  }, []);
 
   const filtered = dummyTransactions.filter(
     (t) =>
       t.id.includes(search) ||
       t.donor.toLowerCase().includes(search.toLowerCase())
+  );
+  const results = transactions.filter(
+    (t) => t.id.includes(search) || t.donor.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -61,8 +90,8 @@ const TrackPayment = () => {
                 </tr>
               </thead>
               <tbody>
-                {filtered.length ? (
-                  filtered.map((tx, i) => (
+                {results.length ? (
+                  results.map((tx, i) => (
                     <tr key={i} className="border-t">
                       <td className="p-4 font-mono">{tx.id}</td>
                       <td>{tx.donor}</td>

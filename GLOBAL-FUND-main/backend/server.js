@@ -70,9 +70,11 @@ app.post('/api/admin/login', async (req, res) => {
 // --- EXISTING ROUTES ---
 const userRoutes = require('./routes/userRoutes');
 const campaignRoutes = require('./routes/campaignRoutes'); // includes donation route
+const donationsRoutes = require('./routes/donations');
 
 app.use('/api/users', userRoutes);
 app.use('/api/campaigns', campaignRoutes);
+app.use('/api/donations', donationsRoutes);
 
 // MongoDB Connection
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/globalfund'; // Fallback URI

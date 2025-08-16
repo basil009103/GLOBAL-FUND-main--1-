@@ -13,10 +13,6 @@ const GoForFund = () => {
     navigate("/track-payment");
   };
 
-  const handleRecentTransactionClick = () => {
-    navigate("/recent-transaction");
-  };
-
   return (
     <div
       className="w-full min-h-screen bg-cover bg-center text-white flex flex-col"
@@ -45,12 +41,7 @@ const GoForFund = () => {
             Track Payment
           </button>
 
-          <button
-            onClick={handleRecentTransactionClick}
-            className="w-48 h-14 bg-black bg-opacity-80 text-white text-lg font-semibold rounded-lg hover:bg-opacity-100 transition"
-          >
-            Recent Transaction
-          </button>
+          {/* Recent Transaction button removed per request */}
         </div>
       </div>
 

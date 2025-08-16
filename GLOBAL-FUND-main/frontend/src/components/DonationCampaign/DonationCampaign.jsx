@@ -10,128 +10,83 @@ const DonationCampaign = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const storedDomestic = JSON.parse(localStorage.getItem("domesticCampaigns"));
-    const storedInternational = JSON.parse(localStorage.getItem("internationalCampaigns"));
+    // Try fetching approved campaigns from backend first
+    const fetchApproved = async () => {
+      try {
+        const res = await fetch('http://localhost:8000/api/campaigns');
+        if (!res.ok) throw new Error('Failed to fetch campaigns');
+        const all = await res.json();
+        // only show approved campaigns in the public list
+        const approved = (all || []).filter((c) => c.status === 'approved');
 
-    if (storedDomestic && storedDomestic.length > 0) {
-      setDomesticCampaigns(storedDomestic);
-    } else {
-      // initial domestic campaigns
-      const initialDomestic = [
-        {
-          _id: "d1",
-          title: "Education for All",
-          description: "Support primary education in rural areas.",
-          goal: 500000,
-          urgency: "Urgent",
-          deadline: "July 20, 2025",
-          currency: "PKR",
-          beneficiaryInfo: `• Build classrooms\n• Provide school supplies\n• Hire teachers`,
-        },
-        {
-          _id: "d2",
-          title: "Flood Relief Punjab",
-          description: "Help families recover from severe flooding.",
-          goal: 1000000,
-          urgency: "Emergency",
-          deadline: "June 30, 2025",
-          currency: "PKR",
-          beneficiaryInfo: `• Shelter kits\n• Clean water\n• Hygiene supplies`,
-        },
-        {
-          _id: "d3",
-          title: "Orphan Support Fund",
-          description: "Sponsor meals and education for orphans.",
-          goal: 600000,
-          urgency: "High",
-          deadline: "August 15, 2025",
-          currency: "PKR",
-          beneficiaryInfo: `• Monthly stipends\n• Health checkups\n• Mentorship`,
-        },
-        {
-          _id: "d4",
-          title: "Water Wells in Thar",
-          description: "Install solar-powered water wells.",
-          goal: 800000,
-          urgency: "Critical",
-          deadline: "July 10, 2025",
-          currency: "PKR",
-          beneficiaryInfo: `• Bore wells\n• Solar pumps\n• Filtration units`,
-        },
-        {
-          _id: "d5",
-          title: "Women Empowerment",
-          description: "Train women in tailoring & digital skills.",
-          goal: 400000,
-          urgency: "Normal",
-          deadline: "Sept 1, 2025",
-          currency: "PKR",
-          beneficiaryInfo: `• Skills training\n• Micro-loans\n• Equipment`,
-        },
-        {
-          _id: "d6",
-          title: "Mobile Health Clinic",
-          description: "Fund mobile clinics for remote villages.",
-          goal: 950000,
-          urgency: "High",
-          deadline: "August 5, 2025",
-          currency: "PKR",
-          beneficiaryInfo: `• Doctor visits\n• Free medicines\n• Health awareness`,
-        },
-      ];
-      setDomesticCampaigns(initialDomestic);
-      localStorage.setItem("domesticCampaigns", JSON.stringify(initialDomestic));
-    }
+        const dom = approved.filter((c) => c.currency === 'PKR');
+        const intl = approved.filter((c) => c.currency === 'USD');
 
-    if (storedInternational && storedInternational.length > 0) {
-      setInternationalCampaigns(storedInternational);
-    } else {
-      // initial international campaigns
-      const initialInternational = [
-        {
-          _id: "i1",
-          title: "Earthquake Relief in Turkey",
-          description: "Help families rebuild homes after disaster.",
-          goal: 40000,
-          urgency: "Emergency",
-          deadline: "July 25, 2025",
-          currency: "USD",
-          beneficiaryInfo: `• Temporary shelters\n• Medical support\n• Food kits`,
-        },
-        {
-          _id: "i2",
-          title: "Support Gaza Families",
-          description: "Provide urgent aid to displaced families.",
-          goal: 30000,
-          urgency: "Critical",
-          deadline: "July 10, 2025",
-          currency: "USD",
-          beneficiaryInfo: `• Food parcels\n• Clean water\n• Emergency care`,
-        },
-        {
-          _id: "i3",
-          title: "Ukraine Education Relief",
-          description: "Fund online schooling for war-affected children.",
-          goal: 25000,
-          urgency: "High",
-          deadline: "August 1, 2025",
-          currency: "USD",
-          beneficiaryInfo: `• Tablets\n• Online access\n• Teaching support`,
-        },
-        {
-          _id: "i4",
-          title: "Africa Malaria Drive",
-          description: "Distribute mosquito nets and medical aid.",
-          goal: 35000,
-          urgency: "Normal",
-          deadline: "August 15, 2025",
-          currency: "USD",
-          beneficiaryInfo: `• Nets\n• Medicine\n• Public awareness`,
-        },
-      ];
-      setInternationalCampaigns(initialInternational);
-      localStorage.setItem("internationalCampaigns", JSON.stringify(initialInternational));
-    }
+        if (dom.length > 0) {
+          setDomesticCampaigns(dom);
+          localStorage.setItem('domesticCampaigns', JSON.stringify(dom));
+        }
+        if (intl.length > 0) {
+          setInternationalCampaigns(intl);
+          localStorage.setItem('internationalCampaigns', JSON.stringify(intl));
+        }
+
+        // If backend returned nothing approved, fallback to localStorage/demo data below
+        if (dom.length === 0 && intl.length === 0) {
+          applyLocalFallback();
+        }
+      } catch (err) {
+        console.warn('Could not fetch campaigns from backend, using local demo data:', err);
+        applyLocalFallback();
+      }
+    };
+
+    // apply local storage fallback (same as before)
+    const applyLocalFallback = () => {
+      const storedDomestic = JSON.parse(localStorage.getItem('domesticCampaigns'));
+      const storedInternational = JSON.parse(localStorage.getItem('internationalCampaigns'));
+
+      if (storedDomestic && storedDomestic.length > 0) {
+        setDomesticCampaigns(storedDomestic);
+      } else {
+        // initial domestic campaigns (kept small for readability)
+        const initialDomestic = [
+          {
+            _id: 'd1',
+            title: 'Education for All',
+            description: 'Support primary education in rural areas.',
+            goal: 500000,
+            urgency: 'Urgent',
+            deadline: 'July 20, 2025',
+            currency: 'PKR',
+            beneficiaryInfo: `• Build classrooms\n• Provide school supplies\n• Hire teachers`,
+          },
+        ];
+        setDomesticCampaigns(initialDomestic);
+        localStorage.setItem('domesticCampaigns', JSON.stringify(initialDomestic));
+      }
+
+      if (storedInternational && storedInternational.length > 0) {
+        setInternationalCampaigns(storedInternational);
+      } else {
+        const initialInternational = [
+          {
+            _id: 'i1',
+            title: 'Earthquake Relief in Turkey',
+            description: 'Help families rebuild homes after disaster.',
+            goal: 40000,
+            urgency: 'Emergency',
+            deadline: 'July 25, 2025',
+            currency: 'USD',
+            beneficiaryInfo: `• Temporary shelters\n• Medical support\n• Food kits`,
+          },
+        ];
+        setInternationalCampaigns(initialInternational);
+        localStorage.setItem('internationalCampaigns', JSON.stringify(initialInternational));
+      }
+    };
+
+    fetchApproved();
   }, []);
 
   const campaigns = tab === "domestic" ? domesticCampaigns : internationalCampaigns;

@@ -40,7 +40,8 @@ const HomePage = () => {
     <div className="relative w-full min-h-screen bg-white text-black">
       <Navbar />
 
-      <div className="absolute top-4 right-6 z-50">
+      {/* Logout icon rendered outside navbar and fixed to page edge */}
+      <div style={{ position: 'fixed', top: '12px', right: '12px', zIndex: 60 }}>
         <LogoutButton />
       </div>
 
@@ -195,18 +196,30 @@ const HomePage = () => {
       {/* Footer */}
       <footer className="bg-gray-100 py-16 text-gray-700 px-6">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-10">
-          <div>
-            <p className="mb-6 text-sm">
-              Your small act can spark a lifetime of change.
-              Donate today and help build a better tomorrow.
-            </p>
-            <h4 className="font-semibold mb-2">Our social links</h4>
-            <div className="flex gap-4 text-xl">
-              <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400"><FaTwitter /></a>
-              <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="hover:text-blue-600"><FaFacebook /></a>
-              <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="hover:text-pink-500"><FaInstagram /></a>
-              <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="hover:text-blue-700"><FaLinkedin /></a>
-              <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" className="hover:text-red-600"><FaYoutube /></a>
+          <div className="text-center md:col-span-4">
+            <div className="max-w-md mx-auto">
+              <p className="mb-4 text-sm text-center text-gray-600">
+                Your small act can spark a lifetime of change.
+                <br />Donate today and help build a better tomorrow.
+              </p>
+              <h4 className="font-semibold mb-4 text-center">Our social links</h4>
+              <div className="flex gap-4 justify-center">
+                <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="bg-gray-800 text-white p-2 rounded-full hover:opacity-90">
+                  <FaTwitter />
+                </a>
+                <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="bg-gray-800 text-white p-2 rounded-full hover:opacity-90">
+                  <FaFacebook />
+                </a>
+                <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="bg-gray-800 text-white p-2 rounded-full hover:opacity-90">
+                  <FaInstagram />
+                </a>
+                <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="bg-gray-800 text-white p-2 rounded-full hover:opacity-90">
+                  <FaLinkedin />
+                </a>
+                <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" className="bg-gray-800 text-white p-2 rounded-full hover:opacity-90">
+                  <FaYoutube />
+                </a>
+              </div>
             </div>
           </div>
         </div>

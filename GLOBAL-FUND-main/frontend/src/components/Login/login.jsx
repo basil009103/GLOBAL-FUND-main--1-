@@ -68,10 +68,9 @@ const Login = () => {
         const res = await axios.post("http://localhost:8000/api/users", {
           name, email, password, phone,
         });
-        localStorage.setItem("userInfo", JSON.stringify(res.data));
-        setModalMessage("Sign Up successful! Redirecting to home.");
-        setModalType("success");
-        setTimeout(() => { navigate("/home"); }, 1500);
+  localStorage.setItem("userInfo", JSON.stringify(res.data));
+  // Immediately navigate to home on successful signup (no success modal)
+  navigate("/home");
       } catch (error) {
         console.error("Signup error:", error);
         const message = error.response?.data?.message || "Something went wrong during signup.";
@@ -93,10 +92,9 @@ const Login = () => {
         const res = await axios.post("http://localhost:8000/api/users/login", {
           email, password,
         });
-        localStorage.setItem("userInfo", JSON.stringify(res.data));
-        setModalMessage("Login successful! Redirecting to home page.");
-        setModalType("success");
-        setTimeout(() => { navigate("/home"); }, 1500);
+  localStorage.setItem("userInfo", JSON.stringify(res.data));
+  // Immediately navigate to home on successful login (no success modal)
+  navigate("/home");
       } catch (error) {
         console.error("Login error:", error);
         const message = error.response?.data?.message || "Something went wrong during login.";
@@ -198,7 +196,7 @@ const Login = () => {
 
   return (
     <div
-      className="flex items-center justify-center min-h-screen font-inter"
+      className="flex items-start justify-center min-h-screen pt-24 font-inter"
       style={{
         backgroundColor: '#f0f4f8',
         backgroundImage: `url('/1LOGINbg.jpg')`,

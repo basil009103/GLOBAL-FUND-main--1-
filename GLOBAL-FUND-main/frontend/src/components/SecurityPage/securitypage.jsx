@@ -50,7 +50,7 @@ const SecurityPage = () => {
 
         <div className="mt-8">
           <Link
-            to="/"
+            to="/home"
             className="inline-block bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition"
           >
             Back to Home

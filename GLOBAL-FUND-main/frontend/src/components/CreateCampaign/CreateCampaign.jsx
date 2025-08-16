@@ -16,12 +16,14 @@ const CreateCampaign = () => {
     currency: "PKR", // Default currency, ensure it's one of the valid options
     urgency: "medium", // Default urgency, ensure it matches available options
     beneficiaryInfo: "",
-    walletOptions: [], // Array for checkboxes (stores selected wallet names)
-    image: null, // For file input, stores the File object
+  walletOptions: [], // Array for checkboxes (stores selected wallet names)
+  phoneNumber: "",
   });
 
-  // Predefined wallet options for checkboxes. These should match backend expectations.
-  const wallets = ["JazzCash", "EasyPaisa", "Stripe", "Wise"]; // Common options for example
+  // Wallet options vary by currency: PKR => local wallets, USD => international wallets
+  const wallets = formData.currency === "USD"
+    ? ["Wise", "Stripe", "Card"]
+    : ["JazzCash", "EasyPaisa", "Card"];
 
   // State for loading indicator during form submission
   const [loading, setLoading] = useState(false);
@@ -47,12 +49,19 @@ const CreateCampaign = () => {
           ? [...prev.walletOptions, value] // Add wallet to array if checked
           : prev.walletOptions.filter((opt) => opt !== value), // Remove wallet if unchecked
       }));
-    } else if (name === "image") {
-      // Handle file input for image
-      setFormData((prev) => ({ ...prev, image: files[0] }));
     } else {
       // Handle text, number, select, textarea inputs
-      setFormData((prev) => ({ ...prev, [name]: value }));
+      if (name === "currency") {
+        // When currency changes, also sanitize walletOptions to only include allowed wallets
+        const allowed = value === "USD" ? ["Wise", "Stripe", "Card"] : ["JazzCash", "EasyPaisa", "Card"];
+        setFormData((prev) => ({
+          ...prev,
+          currency: value,
+          walletOptions: prev.walletOptions.filter((opt) => allowed.includes(opt)),
+        }));
+      } else {
+        setFormData((prev) => ({ ...prev, [name]: value }));
+      }
     }
   };
 
@@ -77,34 +86,35 @@ const CreateCampaign = () => {
     // --- End Authentication Check ---
 
     try {
-      // Create FormData object to correctly handle multipart/form-data, especially for file uploads
-      const data = new FormData();
-      Object.keys(formData).forEach((key) => {
-        if (key === "walletOptions") {
-          // For walletOptions array, append each item individually
-          formData.walletOptions.forEach((opt) => data.append("walletOptions", opt));
-        } else if (key === "image" && formData.image) {
-          // Append the image file if present
-          data.append("image", formData.image);
-        } else if (key === "goal") {
-          // Convert goal to a Number before appending, as backend expects a number
-          data.append(key, Number(formData[key]));
-        } else {
-          // Append other form fields directly
-          data.append(key, formData[key]);
-        }
-      });
+      // Client-side validation: ensure phoneNumber exists and is 11 digits
+      if (!formData.phoneNumber || !/^\d{11}$/.test(String(formData.phoneNumber))) {
+        setModalMessage("Please enter a valid 11-digit phone number (e.g. 03001234567).");
+        setModalType("error");
+        setLoading(false);
+        return;
+      }
+      // Build JSON payload (backend expects JSON now)
+      const payload = {
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        goal: Number(formData.goal) || 0,
+        currency: formData.currency || "PKR",
+        deadline: formData.deadline || null,
+        urgency: (formData.urgency || "medium").toLowerCase(),
+        beneficiaryInfo: formData.beneficiaryInfo.trim(),
+        walletOptions: Array.isArray(formData.walletOptions) ? formData.walletOptions : [],
+        phoneNumber: String(formData.phoneNumber || ""),
+      };
 
-      // Axios request configuration, including content type for FormData and Authorization header
       const config = {
         headers: {
-          "Content-Type": "multipart/form-data", // Crucial for FormData to be parsed correctly by backend
-          Authorization: `Bearer ${token}`, // Include the authentication token for protected route
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
       };
 
-      // Make the POST request to the backend API endpoint for creating campaigns
-      const res = await axios.post("http://localhost:8000/api/campaigns", data, config);
+      // Send JSON payload
+      const res = await axios.post("http://localhost:8000/api/campaigns", payload, config);
 
       // Set success message for the modal
       setModalMessage("Campaign submitted successfully! Awaiting admin approval.");
@@ -120,7 +130,7 @@ const CreateCampaign = () => {
         urgency: "medium",
         beneficiaryInfo: "",
         walletOptions: [],
-        image: null,
+        phoneNumber: "",
       });
 
       // Optional: Navigate to a different page after a delay to show success message
@@ -222,8 +232,7 @@ const CreateCampaign = () => {
               >
                 <option value="PKR">PKR</option>
                 <option value="USD">USD</option>
-                <option value="EUR">EUR</option>
-                <option value="GBP">GBP</option>
+                
                 {/* Add more currency options if needed, ensure they match backend schema */}
               </select>
             </div>
@@ -281,16 +290,20 @@ const CreateCampaign = () => {
             </div>
           </div>
 
-          <div className="mb-6">
-            <label htmlFor="image" className="block text-sm font-medium text-gray-700">Campaign Image (optional)</label>
+          <div className="mb-4">
+            <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Contact Phone (11 digits)</label>
             <input
-              type="file"
-              name="image"
-              id="image"
-              accept="image/*" // Restricts file selection to image types
+              type="tel"
+              name="phoneNumber"
+              id="phone"
+              value={formData.phoneNumber || ""}
               onChange={handleChange}
-              className="mt-1 block w-full text-sm text-gray-900 border border-gray-300 rounded-md cursor-pointer bg-gray-50 focus:outline-none"
+              pattern="\d{11}"
+              required
+              placeholder="03XXXXXXXXX"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
             />
+            <p className="text-xs text-gray-500 mt-1">Enter 11 digits, e.g., 03001234567</p>
           </div>
 
           <button

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom"; 
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom"; 
 
 // Import all your components
 import Login from "./components/Login/login"; 
@@ -18,6 +18,7 @@ import CreateCampaign from "./components/CreateCampaign/CreateCampaign.jsx";
 
 // IMPORTS FOR ADMIN & PROTECTION
 import AdminCampaigns from "./components/AdminCampaigns/AdminCampaigns.jsx";
+import AdminCreateCampaign from "./components/AdminCreateCampaign/AdminCreateCampaign.jsx";
 import AdminLogin from "./components/adminLogin/AdminLogin.jsx"; 
 import ProtectedRoute from "./components/ProtectedRoute/ProtectedRoute.jsx"; 
 
@@ -49,15 +50,48 @@ function App() {
     };
   }, []); // Empty dependency array ensures this effect runs only once on mount
 
+  // Listen for storage changes and a custom 'user-info-changed' event so the app updates immediately after login/logout
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'userInfo') { // Only react to changes in 'userInfo'
+        const updatedUserInfo = localStorage.getItem('userInfo');
+        setUserInfo(updatedUserInfo ? JSON.parse(updatedUserInfo) : null);
+      }
+    };
+
+    const handleUserInfoChanged = () => {
+      const updatedUserInfo = localStorage.getItem('userInfo');
+      setUserInfo(updatedUserInfo ? JSON.parse(updatedUserInfo) : null);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('user-info-changed', handleUserInfoChanged);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('user-info-changed', handleUserInfoChanged);
+    };
+  }, []);
+
   // Derive isAuthenticated and isAdmin based on the current userInfo state
   const isAuthenticated = userInfo && userInfo.token; // True if any user is logged in (has a token)
   const isAdmin = userInfo && userInfo.isAdmin;       // True if logged-in user is an admin (has token AND isAdmin: true)
 
   return (
     <Router>
-      {/* Conditionally render the Navbar. It will appear only if isAuthenticated is true.
-          Navbar now receives isAuthenticated and isAdmin as props. */}
-      {isAuthenticated && <Navbar isAuthenticated={isAuthenticated} isAdmin={isAdmin} />} 
+      {/* Render Navbar via a small inner component that uses useLocation.
+          This ensures App will re-render the Navbar when the route changes
+          (useLocation updates on navigation). We still hide the Navbar on
+          the explicit /admin-login path. */}
+      {
+        (() => {
+          const NavbarRenderer = () => {
+            const location = useLocation();
+            return location.pathname !== '/admin-login' ? <Navbar /> : null;
+          };
+          return <NavbarRenderer />;
+        })()
+      }
 
       <div>
         <Routes>
@@ -132,6 +166,15 @@ function App() {
             element={
               <ProtectedRoute adminOnly={true}> 
                 <AdminCampaigns />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin/create-campaign"
+            element={
+              <ProtectedRoute adminOnly={true}>
+                <AdminCreateCampaign />
               </ProtectedRoute>
             }
           />

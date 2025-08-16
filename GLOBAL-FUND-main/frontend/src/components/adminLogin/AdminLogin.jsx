@@ -21,18 +21,13 @@ const AdminLogin = () => {
       // Make a POST request to your backend's admin login endpoint
       const res = await axios.post('http://localhost:8000/api/admin/login', { email, password });
       
-      // Store the user information (including isAdmin and the token) in localStorage
-      localStorage.setItem('userInfo', JSON.stringify(res.data));
-      
-      // Set success message for the modal
-      setModalMessage('Login successful! Redirecting to admin panel.');
-      setModalType('success');
-      
-      // Redirect to the admin campaigns page after a short delay
-      // The delay allows the user to see the success message in the modal
-      setTimeout(() => {
-        navigate('/admin-campaigns');
-      }, 1500);
+  // Store the user information (including isAdmin and the token) in localStorage
+  localStorage.setItem('userInfo', JSON.stringify(res.data));
+  // Dispatch a custom event so App updates userInfo immediately without a full reload
+  window.dispatchEvent(new Event('user-info-changed'));
+
+  // Immediately navigate to admin campaigns (no success modal)
+  navigate('/admin-campaigns');
 
     } catch (error) {
       // Handle login errors
@@ -53,7 +48,7 @@ const AdminLogin = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4 font-inter">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4 font-inter pt-16">
       <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
         <h2 className="text-3xl font-bold text-center text-gray-800 mb-8">Admin Login</h2>
         <form onSubmit={handleSubmit} className="space-y-6">

@@ -2,13 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Campaign = require('../models/Campaign'); // Import your Campaign model
 const { protect, authorizeAdmin } = require('../middleware/authMiddleware'); // Import the authentication and authorization middleware
-const multer = require('multer'); // NEW: Import multer
-
-// Configure Multer for file storage
-// For now, we'll use memory storage. For production, you'd use diskStorage
-// or a cloud storage solution like Cloudinary.
-const storage = multer.memoryStorage(); // Store file in memory as a buffer
-const upload = multer({ storage: storage });
+// removed multer/image handling; campaigns now expect phoneNumber
 
 // --- Public Routes ---
 
@@ -47,17 +41,19 @@ router.get('/:id', async (req, res) => {
 // @desc    Create a new campaign
 // @route   POST /api/campaigns
 // @access  Private (requires user to be logged in)
-// NEW: Add 'upload.single('image')' middleware to parse the image file and form fields
-router.post('/', protect, upload.single('image'), async (req, res) => {
-  // After multer, fields are in req.body and file is in req.file
-  const { title, description, goal, currency, deadline, urgency, beneficiaryInfo } = req.body;
-  const walletOptions = req.body.walletOptions; // walletOptions will be an array if multiple, or string if single or undefined
-  const imageFile = req.file; // The uploaded image file (if any)
+router.post('/', protect, async (req, res) => {
+  const { title, description, goal, currency, deadline, urgency, beneficiaryInfo, phoneNumber } = req.body;
+  const walletOptions = req.body.walletOptions; // may be array or string or undefined
 
   // Basic validation: Check required fields based on your Campaign schema
   // Note: walletOptions is removed from this initial check as it's optional
-  if (!title || !description || !goal || !currency || !deadline || !urgency || !beneficiaryInfo) {
-    // If any required field is missing after multer parsing, return error
+  // Basic required-field validation (normalize values first)
+  // Normalize incoming values to reduce user-input validation failures
+  const normalizedCurrency = currency ? String(currency).toUpperCase() : undefined;
+  const normalizedUrgency = urgency ? String(urgency).toLowerCase() : undefined;
+  const parsedDeadline = deadline ? new Date(deadline) : undefined;
+
+  if (!title || !description || !goal || !normalizedCurrency || !parsedDeadline || !normalizedUrgency || !beneficiaryInfo) {
     return res.status(400).json({ message: 'Please fill all required fields for the campaign.' });
   }
 
@@ -73,28 +69,35 @@ router.post('/', protect, upload.single('image'), async (req, res) => {
       }
   }
 
-  // Placeholder for imageUrl
-  let imageUrl = '';
-  if (imageFile) {
-    // In a real application, you would upload imageFile.buffer (the image data)
-    // to a cloud storage like Cloudinary or AWS S3 here.
-    // For now, we'll just acknowledge its presence or set a placeholder.
-    console.log(`Image received: ${imageFile.originalname}, Size: ${imageFile.size} bytes`);
-    // Example: imageUrl = await uploadToCloudinary(imageFile.buffer);
-    imageUrl = `/uploads/${imageFile.originalname}`; // Placeholder URL for now
+  // Basic phone validation server-side
+  if (!phoneNumber || !/^\d{11}$/.test(String(phoneNumber))) {
+    return res.status(400).json({ message: 'phoneNumber is required and must be 11 digits.' });
   }
 
   try {
+    // Ensure the request is authenticated and we have a user
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({ message: 'Not authorized to create campaigns. Please log in.' });
+    }
+
+    // Normalize urgency to match schema enum: ["low","medium","high","critical"]
+    const allowedUrgencies = ["low", "medium", "high", "critical"];
+    const finalUrgency = allowedUrgencies.includes(normalizedUrgency) ? normalizedUrgency : 'medium';
+
+    // Ensure currency matches allowed values
+    const allowedCurrencies = ["PKR", "USD"];
+    const finalCurrency = allowedCurrencies.includes(normalizedCurrency) ? normalizedCurrency : 'PKR';
+
     const campaign = new Campaign({
       title,
       description,
       goal: Number(goal), // Ensure goal is converted to a number
-      currency,
-      deadline,
-      urgency,
+      currency: finalCurrency,
+      deadline: parsedDeadline,
+      urgency: finalUrgency,
       beneficiaryInfo,
       walletOptions: parsedWalletOptions, // Use the parsed array
-      imageUrl: imageUrl, // Save the image URL/path
+  phoneNumber: String(phoneNumber),
       status: 'pending',
       createdBy: req.user._id,
       createdByEmail: req.user.email
@@ -113,6 +116,10 @@ router.post('/', protect, upload.single('image'), async (req, res) => {
   }
 });
 
+// Add donation route
+const donationController = require('../controllers/donationController');
+// Create a protected route for creating donation records
+router.post('/:id/donate', protect, donationController.donateToCampaign);
 
 // --- Admin-Specific Routes ---
 
@@ -133,6 +140,26 @@ router.patch('/:id/approve', protect, authorizeAdmin, async (req, res) => {
   } catch (error) {
     console.error("Error approving campaign:", error);
     res.status(500).json({ message: 'Server error while approving campaign.' });
+  }
+});
+
+// @desc    Reject a campaign
+// @route   PATCH /api/campaigns/:id/reject
+// @access  Private/Admin
+router.patch('/:id/reject', protect, authorizeAdmin, async (req, res) => {
+  try {
+    const campaign = await Campaign.findById(req.params.id);
+
+    if (campaign) {
+      campaign.status = 'rejected';
+      const updatedCampaign = await campaign.save();
+      res.json(updatedCampaign);
+    } else {
+      res.status(404).json({ message: 'Campaign not found' });
+    }
+  } catch (error) {
+    console.error("Error rejecting campaign:", error);
+    res.status(500).json({ message: 'Server error while rejecting campaign.' });
   }
 });
 
